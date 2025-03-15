@@ -3,8 +3,14 @@ services:
   innoscripta-blog:
     build: .
     ports:
-      - "80:80"
+      - "5173:5173"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    env_file:
+      - .env
     environment:
-      - VITE_GUARDIAN_API_KEY=${GUARDIAN_API_KEY}
-      - VITE_NYT_API_KEY=${NYT_API_KEY}
-      - VITE_NEWS_API_KEY=${NEWS_API_KEY} 
+      VITE_GUARDIAN_API_KEY: ${VITE_GUARDIAN_API_KEY}
+      VITE_NYT_API_KEY: ${VITE_NYT_API_KEY}
+      VITE_NEWS_API_KEY: ${VITE_NEWS_API_KEY}
+    command: pnpm dev -- --host 

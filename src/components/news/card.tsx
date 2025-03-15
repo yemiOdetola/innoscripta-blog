@@ -39,7 +39,7 @@ export function NewsCard({ image, title, author, date, description, tags, url }:
             )}
           />
 
-          <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient from-white/60 to-transparent backdrop-blur-[12px] group-hover:backdrop-blur-[14px] transition-all z-20">
+          <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-br from-white/60 to-transparent backdrop-blur-[12px] group-hover:backdrop-blur-[14px] transition-all z-20">
             <div className="flex justify-between items-center text-white">
               <div className="flex items-start flex-col gap-0.5">
                 <span className="block text-[13px] font-semibold">{author.split(' ').slice(0, 2).join(' ')}</span>

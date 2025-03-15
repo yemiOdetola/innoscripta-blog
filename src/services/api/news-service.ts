@@ -14,33 +14,49 @@ interface SearchParams {
   source?: string;
 }
 
-export const searchAllSources = async (params: SearchParams): Promise<ApiResponse<Article[]>> => {
-  const selectedSources = params.source ? params.source.split(',') : [];
+interface NewsSource {
+  name: string;
+  fn: (params: any) => Promise<ApiResponse<Article[]>>;
+}
 
-  const availableSources = [
-    { name: 'The Guardian', fn: searchGuardianNews },
-    { name: 'News API', fn: searchNewsAPI },
-    { name: 'The New York Times', fn: searchNYTNews }
-  ];
+const NEWS_SOURCES: NewsSource[] = [
+  { name: 'The Guardian', fn: searchGuardianNews },
+  { name: 'News API', fn: searchNewsAPI },
+  { name: 'The New York Times', fn: searchNYTNews }
+];
 
-  const sourcesToSearch = selectedSources.length > 0
-    ? availableSources.filter(source =>
-      selectedSources.some(selected =>
-        source.name.toLowerCase().includes(selected.toLowerCase())
+const filterSourcesBySelection = (selectedSources: string[]): NewsSource[] => {
+  return selectedSources.length > 0
+    ? NEWS_SOURCES.filter(source =>
+        selectedSources.some(selected =>
+          source.name.toLowerCase().includes(selected.toLowerCase())
+        )
       )
-    )
-    : availableSources;
+    : NEWS_SOURCES;
+};
 
-  console.log('Searching sources:', {
-    selectedSources,
-    sourcesToSearch: sourcesToSearch.map(s => s.name),
-    params: {
-      from: params.from,
-      to: params.to,
-      category: params.category,
-      keyword: params.keyword
+const processResults = (results: PromiseSettledResult<ApiResponse<Article[]>>[], sources: NewsSource[]) => {
+  let allArticles: Article[] = [];
+  let errors: string[] = [];
+
+  results.forEach((result, index) => {
+    if (result.status === 'fulfilled') {
+      if (result.value.error) {
+        errors.push(`${sources[index].name}: ${result.value.error}`);
+      } else {
+        allArticles = [...allArticles, ...result.value.data];
+      }
+    } else {
+      errors.push(`${sources[index].name}: ${result.reason}`);
     }
   });
+
+  return { allArticles, errors };
+};
+
+export const searchAllSources = async (params: SearchParams): Promise<ApiResponse<Article[]>> => {
+  const selectedSources = params.source ? params.source.split(',') : [];
+  const sourcesToSearch = filterSourcesBySelection(selectedSources);
 
   const results = await Promise.allSettled(
     sourcesToSearch.map(source => source.fn({
@@ -51,21 +67,9 @@ export const searchAllSources = async (params: SearchParams): Promise<ApiRespons
     }))
   );
 
-  let allArticles: Article[] = [];
-  let errors: string[] = [];
+  const { allArticles, errors } = processResults(results, sourcesToSearch);
 
-  results.forEach((result, index) => {
-    if (result.status === 'fulfilled') {
-      if (result.value.error) {
-        errors.push(`${sourcesToSearch[index].name}: ${result.value.error}`);
-      } else {
-        allArticles = [...allArticles, ...result.value.data];
-      }
-    } else {
-      errors.push(`${sourcesToSearch[index].name}: ${result.reason}`);
-    }
-  });
-
+  // Sort articles by date
   allArticles.sort((a, b) =>
     new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
   );

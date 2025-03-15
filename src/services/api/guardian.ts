@@ -1,5 +1,6 @@
 import { Article } from '../types/article';
 import { ApiResponse, NewsApiParams, CATEGORY_MAPPINGS } from './types';
+import { handleApiError, validateApiKey, formatDate, processApiResponse, DEFAULT_PAGE_SIZE } from './utils';
 
 interface GuardianArticle {
   id: string;
@@ -30,71 +31,60 @@ interface GuardianResponse {
   };
 }
 
+const mapGuardianArticle = (article: GuardianArticle): Article => ({
+  id: article.id,
+  title: article.webTitle,
+  description: article.fields?.bodyText?.slice(0, 200) || '',
+  content: article.fields?.bodyText || '',
+  url: article.webUrl,
+  imageUrl: article.fields?.thumbnail || '',
+  publishedAt: article.webPublicationDate,
+  source: 'Guardian',
+  category: article.sectionName,
+  author: article.fields?.byline || 'The Guardian'
+});
+
 export async function searchGuardianArticles(params: NewsApiParams): Promise<ApiResponse<Article[]>> {
+  const apiKey = import.meta.env.VITE_GUARDIAN_API_KEY;
+  
   try {
-    const apiKey = import.meta.env.VITE_GUARDIAN_API_KEY;
-    if (!apiKey) {
-      throw new Error('Guardian API key is not configured');
-    }
+    validateApiKey(apiKey, 'Guardian');
     const baseUrl = 'https://content.guardianapis.com/search';
 
-    // Build query parameters
     const queryParams = new URLSearchParams({
-      'api-key': apiKey || '',
+      'api-key': apiKey,
       'q': params.keyword || '',
       'page': params.page?.toString() || '1',
-      'page-size': params.pageSize?.toString() || '10',
+      'page-size': params.pageSize?.toString() || String(DEFAULT_PAGE_SIZE),
       'show-fields': 'thumbnail,bodyText,byline',
       'order-by': 'newest',
     });
 
-    // Add date range if provided
     if (params.startDate) {
-      queryParams.append('from-date', new Date(params.startDate).toISOString().split('T')[0]);
+      queryParams.append('from-date', formatDate(params.startDate));
     }
     if (params.endDate) {
-      queryParams.append('to-date', new Date(params.endDate).toISOString().split('T')[0]);
+      queryParams.append('to-date', formatDate(params.endDate));
     }
 
-    // Add section/category if provided
     if (params.category && CATEGORY_MAPPINGS[params.category]) {
       queryParams.append('section', CATEGORY_MAPPINGS[params.category].guardian);
     }
 
-    const response = await fetch(`${baseUrl}?${queryParams}`);
-    const data: GuardianResponse = await response.json();
-
-    console.log('Guardian API response:', {
-      status: data.response.status,
-      total: data.response.total,
-      currentPage: data.response.currentPage
-    });
+    const data = await processApiResponse<GuardianResponse>(
+      await fetch(`${baseUrl}?${queryParams}`),
+      'Guardian'
+    );
 
     if (data.response.status !== 'ok') {
-      return {
-        data: [],
-        error: 'Failed to fetch articles from Guardian'
-      };
+      return { data: [], error: 'Failed to fetch articles from Guardian' };
     }
 
-    const articles: Article[] = data.response.results.map(article => ({
-      id: article.id,
-      title: article.webTitle,
-      description: article.fields?.bodyText?.slice(0, 200) || '',
-      content: article.fields?.bodyText || '',
-      url: article.webUrl,
-      imageUrl: article.fields?.thumbnail || '',
-      publishedAt: article.webPublicationDate,
-      source: 'Guardian',
-      category: article.sectionName,
-      author: article.fields?.byline || 'The Guardian'
-    }));
-
-    return { data: articles };
-  } catch (error) {
-    return {
-      data: [],
-      error: error instanceof Error ? error.message : 'Failed to fetch articles from Guardian'
+    return { 
+      data: data.response.results.map(mapGuardianArticle),
+      total: data.response.total
     };
+  } catch (error) {
+    return handleApiError(error, 'Guardian');
   }
 } 

@@ -1,9 +1,7 @@
-import { Article } from '../types/article';
-
 export interface ApiResponse<T> {
   data: T;
   error?: string;
-  total?: number;  // Total number of results available
+  total?: number;  
 }
 
 export type CategoryMapping = {
@@ -59,9 +57,9 @@ export const CATEGORY_MAPPINGS: CategoryMapping = {
 
 export interface NewsApiParams {
   keyword?: string;
-  startDate?: string;  // ISO string
-  endDate?: string;    // ISO string
-  category?: string;   // One of the keys from CATEGORY_MAPPINGS
+  startDate?: string;
+  endDate?: string;
+  category?: string;
   source?: string;
   page?: number;
   pageSize?: number;

@@ -11,4 +11,18 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  server: {
+    host: true, // Needed for Docker
+    strictPort: true,
+    port: 5173,
+    watch: {
+      usePolling: true
+    }
+  },
+  envPrefix: 'VITE_',  // Only expose env variables that start with VITE_
+  define: {
+    'process.env.VITE_GUARDIAN_API_KEY': JSON.stringify(process.env.VITE_GUARDIAN_API_KEY),
+    'process.env.VITE_NYT_API_KEY': JSON.stringify(process.env.VITE_NYT_API_KEY),
+    'process.env.VITE_NEWS_API_KEY': JSON.stringify(process.env.VITE_NEWS_API_KEY)
+  }
 })

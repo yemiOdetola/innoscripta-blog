@@ -1,5 +1,6 @@
 import { Article } from '../types/article';
 import { ApiResponse, NewsApiParams, CATEGORY_MAPPINGS } from './types';
+import { handleApiError, validateApiKey, formatDate, processApiResponse, DEFAULT_PAGE_SIZE } from './utils';
 
 const NEWS_API_KEY = import.meta.env.VITE_NEWS_API_KEY;
 const NEWS_API_BASE_URL = 'https://eventregistry.org/api/v1/article/getArticles';
@@ -22,6 +23,13 @@ interface NewsApiRequestBody {
   categoryUri?: string;
 }
 
+interface NewsApiResponse {
+  articles: {
+    results: any[];
+    totalResults: number;
+  };
+}
+
 const mapNewsApiArticle = (article: any): Article => ({
   id: article.uri || article.url,
   title: article.title,
@@ -39,9 +47,7 @@ export const searchNewsArticles = async (
   params: NewsApiParams
 ): Promise<ApiResponse<Article[]>> => {
   try {
-    if (!NEWS_API_KEY) {
-      throw new Error('NewsAPI key is not configured');
-    }
+    validateApiKey(NEWS_API_KEY, 'NewsAPI');
 
     const requestBody: NewsApiRequestBody = {
       action: "getArticles",
@@ -53,7 +59,7 @@ export const searchNewsArticles = async (
       ],
       ignoreSourceGroupUri: "paywall/paywalled_sources",
       articlesPage: params.page || 1,
-      articlesCount: params.pageSize || 10,
+      articlesCount: params.pageSize || DEFAULT_PAGE_SIZE,
       articlesSortBy: "date",
       articlesSortByAsc: false,
       dataType: ["news", "pr"],
@@ -62,42 +68,27 @@ export const searchNewsArticles = async (
       apiKey: NEWS_API_KEY
     };
 
-    // Add date filters if provided
     if (params.startDate) {
-      requestBody.dateStart = new Date(params.startDate).toISOString().split('T')[0];
+      requestBody.dateStart = formatDate(params.startDate);
     }
     if (params.endDate) {
-      requestBody.dateEnd = new Date(params.endDate).toISOString().split('T')[0];
+      requestBody.dateEnd = formatDate(params.endDate);
     }
 
-    // Add category if provided
     if (params.category && CATEGORY_MAPPINGS[params.category]) {
       requestBody.categoryUri = CATEGORY_MAPPINGS[params.category].newsApi;
     }
 
-    console.log('News API request:', {
-      dates: {
-        start: requestBody.dateStart,
-        end: requestBody.dateEnd
-      },
-      category: requestBody.categoryUri,
-      keyword: requestBody.keyword
-    });
-
-    const response = await fetch(NEWS_API_BASE_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error('NewsAPI error:', data);
-      throw new Error(data.error || `NewsAPI error: ${response.statusText}`);
-    }
+    const data = await processApiResponse<NewsApiResponse>(
+      await fetch(NEWS_API_BASE_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      }),
+      'NewsAPI'
+    );
 
     if (!data.articles || !Array.isArray(data.articles.results)) {
       throw new Error('Unexpected API response format');
@@ -105,12 +96,9 @@ export const searchNewsArticles = async (
 
     return {
       data: data.articles.results.map(mapNewsApiArticle),
+      total: data.articles.totalResults
     };
   } catch (error) {
-    console.error('NewsAPI error:', error);
-    return {
-      data: [],
-      error: error instanceof Error ? error.message : 'Unknown error occurred',
-    };
+    return handleApiError(error, 'NewsAPI');
   }
 }; 

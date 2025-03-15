@@ -1,13 +1,14 @@
-# Build stage
-FROM node:18-alpine as build
-WORKDIR /app
-COPY package*.json ./
-RUN pnpm install
-COPY . .
-RUN pnpm run build
+FROM node:18-alpine
 
-# Production stage
-FROM nginx:alpine
-COPY --from=build /app/dist /usr/share/nginx/html
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"] 
+WORKDIR /app
+
+RUN npm install -g pnpm
+
+COPY package*.json ./
+COPY pnpm-lock.yaml ./
+
+RUN pnpm install
+
+EXPOSE 5173
+
+CMD ["pnpm", "dev", "--host"] 

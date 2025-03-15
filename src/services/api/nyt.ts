@@ -4,163 +4,147 @@ import { ApiResponse, NewsApiParams, CATEGORY_MAPPINGS } from './types';
 const NYT_API_KEY = import.meta.env.VITE_NYT_API_KEY;
 const NYT_SEARCH_BASE_URL = 'https://api.nytimes.com/svc/search/v2';
 const NYT_POPULAR_BASE_URL = 'https://api.nytimes.com/svc/mostpopular/v2';
+const DEFAULT_PAGE_SIZE = 10;
 
-const mapNYTimesArticle = (article: any): Article => {
-  // Helper to get the best available image URL
-  const getImageUrl = (article: any): string | undefined => {
-    // For article search endpoint
-    if (article.multimedia?.[0]?.url) {
-      return article.multimedia[0].url.startsWith('http')
-        ? article.multimedia[0].url
-        : `https://www.nytimes.com/${article.multimedia[0].url}`;
-    }
-    
-    // For most popular articles endpoint
-    if (article.media?.[0]?.type === 'image') {
-      const metadata = article.media[0]['media-metadata'];
-      // Get the largest image from metadata
-      if (Array.isArray(metadata) && metadata.length > 0) {
-        return metadata[metadata.length - 1].url;
-      }
-    }
-    
-    return undefined;
-  };
-
+// Utility functions
+const handleNYTError = (error: any, context: string): ApiResponse<Article[]> => {
+  console.error(`NYTimes ${context} API error:`, error);
   return {
-    id: article._id || article.id || article.uri,
-    title: article.headline?.main || article.title,
-    description: article.abstract,
-    content: article.lead_paragraph || article.abstract,
-    author: article.byline?.original?.replace('By ', '') || article.byline || 'Unknown',
-    source: 'The New York Times',
-    category: article.news_desk || article.section,
-    publishedAt: article.pub_date || article.published_date,
-    url: article.web_url || article.url,
-    imageUrl: getImageUrl(article),
+    data: [],
+    error: error instanceof Error ? error.message : 'Unknown error occurred',
   };
+};
+
+const validateApiKey = () => {
+  if (!NYT_API_KEY) {
+    throw new Error('NYTimes API key is not configured');
+  }
+};
+
+const processApiResponse = async (response: Response, context: string) => {
+  const data = await response.json();
+  
+  if (!response.ok) {
+    console.error(`NYTimes ${context} API error:`, data);
+    throw new Error(data.fault?.faultstring || `NYTimes API error: ${response.statusText}`);
+  }
+  
+  return data;
+};
+
+const getImageUrl = (article: any): string | undefined => {
+  if (article.multimedia?.[0]?.url) {
+    return article.multimedia[0].url.startsWith('http')
+      ? article.multimedia[0].url
+      : `https://www.nytimes.com/${article.multimedia[0].url}`;
+  }
+
+  if (article.media?.[0]?.type === 'image') {
+    const metadata = article.media[0]['media-metadata'];
+    if (Array.isArray(metadata) && metadata.length > 0) {
+      return metadata[metadata.length - 1].url;
+    }
+  }
+
+  return undefined;
+};
+
+const mapNYTimesArticle = (article: any): Article => ({
+  id: article._id || article.id || article.uri,
+  title: article.headline?.main || article.title,
+  description: article.abstract,
+  content: article.lead_paragraph || article.abstract,
+  author: article.byline?.original?.replace('By ', '') || article.byline || 'Unknown',
+  source: 'The New York Times',
+  category: article.news_desk || article.section,
+  publishedAt: article.pub_date || article.published_date,
+  url: article.web_url || article.url,
+  imageUrl: getImageUrl(article),
+});
+
+const paginateResults = (articles: Article[], page: number = 1, pageSize: number = DEFAULT_PAGE_SIZE) => {
+  const startIndex = (page - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  return articles.slice(startIndex, endIndex);
+};
+
+const filterByCategory = (articles: Article[], category: string | undefined) => {
+  if (!category || !CATEGORY_MAPPINGS[category]) return articles;
+  
+  const nytCategory = CATEGORY_MAPPINGS[category].nyt.toLowerCase();
+  return articles.filter((article: Article) => 
+    article.category?.toLowerCase() === nytCategory
+  );
 };
 
 export const searchNYTimesArticles = async (
   params: NewsApiParams
 ): Promise<ApiResponse<Article[]>> => {
   try {
-    if (!NYT_API_KEY) {
-      throw new Error('NYTimes API key is not configured');
-    }
+    validateApiKey();
 
-    // If no search parameters are provided, fetch most popular articles
     if (!params.keyword && !params.startDate && !params.endDate && !params.category) {
       return fetchMostPopularArticles(params);
     }
 
-    // Construct the query parameters
     const queryParams = new URLSearchParams({
       'api-key': NYT_API_KEY,
       'sort': 'newest',
-      'page': String(Math.max(0, (params.page || 1) - 1)), // Convert to 0-based pagination
+      'page': String(Math.max(0, (params.page || 1) - 1)),
+      'q': params.keyword || '',
     });
 
-    // Add search query if provided, otherwise use wildcard
-    queryParams.set('q', params.keyword || '');
-
-    // Handle date filters
     if (params.startDate) {
-      const startDate = new Date(params.startDate)
-        .toISOString()
-        .split('T')[0]
-        .replace(/-/g, '');
-      queryParams.set('begin_date', startDate);
+      queryParams.set('begin_date', new Date(params.startDate).toISOString().split('T')[0].replace(/-/g, ''));
     }
 
     if (params.endDate) {
-      const endDate = new Date(params.endDate)
-        .toISOString()
-        .split('T')[0]
-        .replace(/-/g, '');
-      queryParams.set('end_date', endDate);
+      queryParams.set('end_date', new Date(params.endDate).toISOString().split('T')[0].replace(/-/g, ''));
     }
 
-    // Construct filter queries
-    const filterQueries: string[] = [];
-    
-    // Always filter for NYT source
-    filterQueries.push('source:("The New York Times")');
-
-    // Add category filter if provided
+    const filterQueries = ['source:("The New York Times")'];
     if (params.category && CATEGORY_MAPPINGS[params.category]) {
       filterQueries.push(`news_desk:("${CATEGORY_MAPPINGS[params.category].nyt}")`);
     }
-
-    // Add filter query if we have any filters
-    if (filterQueries.length > 0) {
-      queryParams.set('fq', filterQueries.join(' AND '));
-    }
+    queryParams.set('fq', filterQueries.join(' AND '));
 
     const url = `${NYT_SEARCH_BASE_URL}/articlesearch.json?${queryParams.toString()}`;
-    console.log('NYT Search API request:', {
-      url,
-      params,
-      queryParams: Object.fromEntries(queryParams.entries())
-    });
-
-    const response = await fetch(url);
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error('NYTimes Search API error:', data);
-      throw new Error(data.fault?.faultstring || `NYTimes API error: ${response.statusText}`);
-    }
+    const data = await processApiResponse(await fetch(url), 'Search');
 
     if (!data.response?.docs) {
-      console.log('NYTimes API returned no docs:', data);
       return { data: [], error: 'No results found' };
     }
 
-    const articles = data.response.docs.map(mapNYTimesArticle);
-    console.log(`NYTimes API returned ${articles.length} articles`);
-
     return {
-      data: articles,
+      data: data.response.docs.map(mapNYTimesArticle),
       total: data.response.meta?.hits,
     };
   } catch (error) {
-    console.error('NYTimes API error:', error);
-    return {
-      data: [],
-      error: error instanceof Error ? error.message : 'Unknown error occurred',
-    };
+    return handleNYTError(error, 'Search');
   }
 };
 
 async function fetchMostPopularArticles(params: NewsApiParams): Promise<ApiResponse<Article[]>> {
   try {
-    // Default to most viewed articles in the last day
-    const period = '1'; // 1, 7, or 30 days
+    validateApiKey();
+    
+    const period = '1';
     const url = `${NYT_POPULAR_BASE_URL}/viewed/${period}.json?api-key=${NYT_API_KEY}`;
-
-    console.log('NYT Popular API request:', { url });
-
-    const response = await fetch(url);
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error('NYTimes Popular API error:', data);
-      throw new Error(data.fault?.faultstring || `NYTimes API error: ${response.statusText}`);
-    }
+    const data = await processApiResponse(await fetch(url), 'Popular');
 
     if (!Array.isArray(data.results)) {
       return { data: [], error: 'No results found' };
     }
 
+    let articles = data.results.map(mapNYTimesArticle);
+    articles = filterByCategory(articles, params.category);
+    const paginatedArticles = paginateResults(articles, params.page);
+
     return {
-      data: data.results.map(mapNYTimesArticle),
+      data: paginatedArticles,
+      total: articles.length
     };
   } catch (error) {
-    console.error('NYTimes Popular API error:', error);
-    return {
-      data: [],
-      error: error instanceof Error ? error.message : 'Unknown error occurred',
-    };
+    return handleNYTError(error, 'Popular');
   }
 } 
