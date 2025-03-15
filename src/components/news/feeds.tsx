@@ -3,18 +3,15 @@ import Container from "@/components/container"
 import { NewsCard } from "@/components/news/card"
 import { searchAllSources } from "@/services/api/news-service";
 import { Article } from "@/services/types/article";
-import { SearchBar } from "./search";
-import { Preferences } from "./preferences";
-import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { DateRange } from "react-day-picker";
+import Banner from "../banner";
 
 export interface FiltersState {
   dateRange?: DateRange;
   category?: string;
   source?: string;
 }
-
 
 function Feeds() {
   const [articles, setArticles] = useState<Article[]>([]);
@@ -25,7 +22,7 @@ function Feeds() {
     keyword: '',
     page: 1,
     pageSize: 12,
-    dateRange: undefined as { from?: Date; to?: Date } | undefined,
+    dateRange: undefined as DateRange | undefined,
     category: undefined as string | undefined,
     source: undefined as string | undefined,
   });
@@ -33,29 +30,13 @@ function Feeds() {
   const [preferences, setPreferences] = useState({
     sources: [] as string[],
     categories: [] as string[],
-    dateRange: undefined as { from?: Date; to?: Date } | undefined,
+    dateRange: undefined as DateRange | undefined,
   });
-
-  const [sources] = useState(['Guardian', 'New York Times', 'News API']);
-  const [categories] = useState([
-    'World',
-    'Politics',
-    'Business',
-    'Technology',
-    'Science',
-    'Health',
-    'Sports',
-    'Entertainment'
-  ]);
 
   const observerTarget = useRef<HTMLDivElement>(null);
 
   const extractKeywords = (title: string, description: string, category: string): string[] => {
     const baseKeywords = category ? [category] : [];
-
-    const titleWords = title.toLowerCase().split(/\s+/);
-    const descriptionWords = description.toLowerCase().split(/\s+/);
-
     const commonWords = new Set([
       'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by',
       'this', 'that', 'these', 'those', 'is', 'are', 'was', 'were', 'has', 'have', 'had',
@@ -66,71 +47,46 @@ function Feeds() {
       'could', 'from', 'news', 'latest', 'update', 'breaking'
     ]);
 
-    const titleKeywords = titleWords
-      .filter(word => {
-        const cleaned = word.replace(/[^a-z0-9]/g, '');
-        return cleaned.length >= 3 &&
-          cleaned.length <= 15 &&
-          !commonWords.has(cleaned);
-      })
-      .map(word => word.replace(/[^a-z0-9]/g, ''));
-
-
-    const descriptionKeywords = descriptionWords
-      .filter(word => {
-        const cleaned = word.replace(/[^a-z0-9]/g, '');
-        return cleaned.length >= 3 &&
-          cleaned.length <= 15 &&
-          !commonWords.has(cleaned);
-      })
-      .map(word => word.replace(/[^a-z0-9]/g, ''));
+    const processWords = (text: string) => text.toLowerCase()
+      .split(/\s+/)
+      .map(word => word.replace(/[^a-z0-9]/g, ''))
+      .filter(word => word.length >= 3 && word.length <= 15 && !commonWords.has(word));
 
     const allKeywords = new Set([
       ...baseKeywords,
-      ...titleKeywords,
-      ...descriptionKeywords
+      ...processWords(title),
+      ...processWords(description)
     ]);
 
-    const finalKeywords = [...allKeywords]
-      .filter(keyword => keyword.length <= 15)
+    return [...allKeywords]
       .slice(0, 3)
-      .map(keyword => {
-        return keyword
-          .split(/[^a-zA-Z0-9]+/)
-          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-          .join(' ');
-      });
-
-    return finalKeywords;
+      .map(keyword => keyword
+        .split(/[^a-zA-Z0-9]+/)
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ')
+      );
   };
 
   const removeDuplicates = (articles: Article[]): Article[] => {
     const seen = new Map();
     return articles.filter(article => {
       const key = `${article.title}-${article.url}`;
-      if (seen.has(key)) {
-        return false;
-      }
-      seen.set(key, true);
-      return true;
+      return !seen.has(key) && seen.set(key, true);
     });
   };
 
   const fetchArticles = async (isLoadingMore = false) => {
-    if (!isLoadingMore) {
-      setIsLoading(true);
-    } else {
-      setIsLoadingMore(true);
-    }
+    const loadingState = isLoadingMore ? setIsLoadingMore : setIsLoading;
+    loadingState(true);
 
     try {
       const dateRange = searchParams.dateRange || preferences.dateRange;
       const apiParams = {
         ...searchParams,
-        from: dateRange?.from ? new Date(dateRange.from.setHours(0, 0, 0, 0)).toISOString() : undefined,
-        to: dateRange?.to ? new Date(dateRange.to.setHours(23, 59, 59, 999)).toISOString() : undefined,
-        category: searchParams.category || (preferences.categories.length > 0 ? preferences.categories[0] : undefined),
-        source: searchParams.source || (preferences.sources.length > 0 ? preferences.sources[0] : undefined),
+        from: dateRange?.from?.toISOString(),
+        to: dateRange?.to?.toISOString(),
+        category: searchParams.category || (preferences.categories[0] || undefined),
+        source: searchParams.source || (preferences.sources.join(',') || undefined),
       };
 
       const response = await searchAllSources(apiParams);
@@ -151,8 +107,7 @@ function Feeds() {
     } catch (err) {
       toast.error("Failed to fetch articles. Please try again later.");
     } finally {
-      setIsLoading(false);
-      setIsLoadingMore(false);
+      loadingState(false);
     }
   };
 
@@ -165,8 +120,28 @@ function Feeds() {
     searchParams.source,
     searchParams.dateRange,
     preferences.sources,
-    preferences.categories
+    preferences.categories,
+    preferences.dateRange
   ]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !isLoading && !isLoadingMore && hasMore) {
+          setSearchParams(prev => ({ ...prev, page: prev.page + 1 }));
+          fetchArticles(true);
+        }
+      },
+      { threshold: 1.0 }
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => observer.disconnect();
+  }, [isLoading, isLoadingMore, hasMore]);
+
 
   const handleSearch = (keyword: string, filters?: FiltersState) => {
     setSearchParams(prev => ({
@@ -182,14 +157,12 @@ function Feeds() {
   const handlePreferencesChange = (newPreferences: {
     sources: string[];
     categories: string[];
-    dateRange?: { from?: Date; to?: Date };
+    dateRange?: DateRange;
   }) => {
     setPreferences({
-      sources: newPreferences.sources,
-      categories: newPreferences.categories,
+      ...newPreferences,
       dateRange: newPreferences.dateRange || undefined
     });
-
     setSearchParams(prev => ({
       ...prev,
       category: undefined,
@@ -198,96 +171,38 @@ function Feeds() {
     }));
   };
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && !isLoading && !isLoadingMore && hasMore) {
-          setSearchParams(prev => ({
-            ...prev,
-            page: prev.page + 1
-          }));
-          fetchArticles(true);
-        }
-      },
-      { threshold: 1.0 }
-    );
-
-    if (observerTarget.current) {
-      observer.observe(observerTarget.current);
-    }
-
-    return () => observer.disconnect();
-  }, [isLoading, isLoadingMore, hasMore]);
-
-  if (isLoading) {
-    return (
-      <Container>
-        <div className="flex items-center justify-between mb-6">
-          <SearchBar
-            onSearch={handleSearch}
-            isLoading={isLoading}
-          />
-          <Preferences
-            sources={sources}
-            categories={categories}
-            onPreferencesChange={handlePreferencesChange}
-          />
-        </div>
+  const renderContent = () => {
+    if (isLoading) {
+      return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {Array.from({ length: 8 }).map((_, index) => (
             <div key={index} className="space-y-3">
-              <Skeleton className="h-[200px] w-full rounded-lg" />
+              <div className="h-[200px] w-full rounded-lg bg-gray-200 animate-pulse" />
               <div className="space-y-2">
-                <Skeleton className="h-4 w-[80%]" />
-                <Skeleton className="h-4 w-[90%]" />
-                <Skeleton className="h-4 w-[60%]" />
+                <div className="h-4 w-[80%] bg-gray-200 animate-pulse" />
+                <div className="h-4 w-[90%] bg-gray-200 animate-pulse" />
+                <div className="h-4 w-[60%] bg-gray-200 animate-pulse" />
               </div>
               <div className="flex gap-2">
-                <Skeleton className="h-3 w-16" />
-                <Skeleton className="h-3 w-16" />
+                <div className="h-3 w-16 bg-gray-200 animate-pulse" />
+                <div className="h-3 w-16 bg-gray-200 animate-pulse" />
               </div>
             </div>
           ))}
         </div>
-      </Container>
-    );
-  }
+      );
+    }
 
-  if (articles.length === 0) {
-    return (
-      <Container>
-        <div className="flex items-center justify-between mb-6">
-          <SearchBar
-            onSearch={handleSearch}
-            isLoading={isLoading}
-          />
-          <Preferences
-            sources={sources}
-            categories={categories}
-            onPreferencesChange={handlePreferencesChange}
-          />
-        </div>
-        <div className="flex items-center justify-center min-h-[400px]">
+    if (articles.length === 0) {
+      return (
+        <div className="flex items-center justify-center min-h-[600px]">
           <p className="text-gray-500">No articles found</p>
         </div>
-      </Container>
-    );
-  }
+      );
+    }
 
-  return (
-    <Container>
-      <div className="flex items-center justify-between mb-6">
-        <SearchBar
-          onSearch={handleSearch}
-          isLoading={isLoading}
-        />
-        <Preferences
-          sources={sources}
-          categories={categories}
-          onPreferencesChange={handlePreferencesChange}
-        />
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-4 lg:gap-x-8 gap-y-10">
         {articles.map((article, index) => (
           <NewsCard
             key={`${article.id}-${index}`}
@@ -301,21 +216,33 @@ function Feeds() {
           />
         ))}
       </div>
+    );
+  };
 
-      <div ref={observerTarget} className="h-16 mt-8 mb-4 flex items-center justify-center">
-        {isLoadingMore ? (
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded-full border-2 border-gray-300 border-t-gray-600 animate-spin" />
-            <p className="text-gray-500">Loading more articles...</p>
-          </div>
-        ) : hasMore ? (
-          <div className="h-4" />
-        ) : (
-          <p className="text-gray-500">No more articles to load</p>
-        )}
-      </div>
-    </Container>
+  return (
+    <>
+      <Banner
+        onSearch={handleSearch}
+        onPreferencesChange={handlePreferencesChange}
+        isLoading={isLoading}
+      />
+      <Container className="py-8">
+        {renderContent()}
+        <div ref={observerTarget} className="h-16 mt-8 mb-4 flex items-center justify-center">
+          {isLoadingMore ? (
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded-full border-2 border-gray-300 border-t-gray-600 animate-spin" />
+              <p className="text-gray-500">Loading more articles...</p>
+            </div>
+          ) : hasMore ? (
+            <div className="h-4" />
+          ) : (
+            <p className="text-gray-500">No more articles to load</p>
+          )}
+        </div>
+      </Container>
+    </>
   );
 }
 
-export default Feeds
+export default Feeds;

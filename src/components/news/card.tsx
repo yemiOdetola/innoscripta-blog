@@ -24,7 +24,7 @@ export function NewsCard({ image, title, author, date, description, tags, url }:
   });
 
   return (
-    <article className="group relative bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300">
+    <article className="group relative rounded overflow-hidden">
       <a href={url} target="_blank" rel="noopener noreferrer" className="block">
         <div className="relative aspect-[16/9] overflow-hidden">
           {!imageLoaded && (
@@ -42,7 +42,7 @@ export function NewsCard({ image, title, author, date, description, tags, url }:
 
           <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/70 to-transparent backdrop-blur-[10px] group-hover:backdrop-blur-[16px] transition-all z-20">
             <div className="flex justify-between items-center text-white">
-              <div className="flex items-start flex-col gap-1">
+              <div className="flex items-start flex-col gap-0.5">
                 <span className="block text-[13px] font-semibold">{author.split(' ').slice(0, 2).join(' ')}</span>
                 <span className="block text-[13px]">{formattedDate}</span>
               </div>
@@ -65,7 +65,7 @@ export function NewsCard({ image, title, author, date, description, tags, url }:
           <p className="text-sm text-gray-500 leading-6 line-clamp-2 h-[48px]">
             {description}
           </p>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 mt-2">
             <Button variant="ghost" size="sm" className="!pl-0 text-primary hover:bg-transparent cursor-pointer">
               <span className="text-sm text-gray-500">
                 Read More

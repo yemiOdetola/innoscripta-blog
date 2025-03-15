@@ -15,7 +15,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { Calendar as CalendarIcon, Filter, Settings, X } from "lucide-react"
+import { Calendar as CalendarIcon, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 
@@ -63,20 +63,21 @@ export function Preferences({ sources, categories, onPreferencesChange }: Prefer
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline" size="icon">
-          <Filter className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-1 text-sm w-fit">
+          <span className="text-gray-500">Try the</span>
+          <span className="text-primary font-medium underline cursor-pointer">Filter</span>
+        </div>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Feed Preferences</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-2xl font-medium">Feed Preferences</DialogTitle>
+          <DialogDescription className="text-gray-600 text-sm">
             Customize your news feed by selecting your preferred sources, categories, and date range.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          <div className="space-y-2">
-            <h4 className="font-medium">Default Date Range</h4>
+          <div className="space-y-3 mb-4">
+            <h4 className="font-medium text-sm mb-1">Default Date Range</h4>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -122,12 +123,13 @@ export function Preferences({ sources, categories, onPreferencesChange }: Prefer
               </PopoverContent>
             </Popover>
           </div>
-          <div className="space-y-2">
-            <h4 className="font-medium">Preferred Sources</h4>
+          <div className="space-y-2 mb-4">
+            <h4 className="font-medium text-sm mb-1">Preferred Sources</h4>
             <div className="flex flex-wrap gap-2">
               {sources.map((source) => (
                 <Button
                   key={source}
+                  className="font-normal text-sm rounded"
                   variant={selectedSources.includes(source) ? "default" : "outline"}
                   onClick={() => handleSourceChange(source)}
                   size="sm"
@@ -138,10 +140,11 @@ export function Preferences({ sources, categories, onPreferencesChange }: Prefer
             </div>
           </div>
           <div className="space-y-2">
-            <h4 className="font-medium">Preferred Categories</h4>
+            <h4 className="font-medium text-sm mb-1">Preferred Categories</h4>
             <div className="flex flex-wrap gap-2">
               {categories.map((category) => (
                 <Button
+                  className="font-normal text-sm rounded"
                   key={category}
                   variant={selectedCategories.includes(category) ? "default" : "outline"}
                   onClick={() => handleCategoryChange(category)}
