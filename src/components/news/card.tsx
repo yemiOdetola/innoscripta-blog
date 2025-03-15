@@ -1,8 +1,7 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
-import { Skeleton } from "../ui/skeleton"
+import { ArrowRight } from "lucide-react"
 import { Button } from "../ui/button";
-import { ArrowRight } from "../icons";
 
 interface NewsCardProps {
   image: string;
@@ -40,7 +39,7 @@ export function NewsCard({ image, title, author, date, description, tags, url }:
             )}
           />
 
-          <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/70 to-transparent backdrop-blur-[10px] group-hover:backdrop-blur-[16px] transition-all z-20">
+          <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-white/50 to-transparent backdrop-blur-[8px] group-hover:backdrop-blur-[16px] transition-all z-20">
             <div className="flex justify-between items-center text-white">
               <div className="flex items-start flex-col gap-0.5">
                 <span className="block text-[13px] font-semibold">{author.split(' ').slice(0, 2).join(' ')}</span>
@@ -67,10 +66,10 @@ export function NewsCard({ image, title, author, date, description, tags, url }:
           </p>
           <div className="flex items-center gap-2 mt-2">
             <Button variant="ghost" size="sm" className="!pl-0 text-primary hover:bg-transparent cursor-pointer">
-              <span className="text-sm text-gray-500">
+              <span className="text-sm text-primary">
                 Read More
               </span>
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-4 transition-all duration-300" />
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-4 transition-all duration-300 text-primary" />
             </Button>
           </div>
         </div>
