@@ -2,6 +2,7 @@
 
 News aggregation platform  The Guardian, The New York Times, and NewsAPI. Built with vite, TypeScript, and Tailwind CSS.
 
+
 ## Features
 
 - 🔍 Search articles across multiple news sources
@@ -11,8 +12,10 @@ News aggregation platform  The Guardian, The New York Times, and NewsAPI. Built 
 - 📰 Source selection (Guardian, NYT, NewsAPI)
 - 💾 User preferences persistence (localstorage)
 
-# UI inspiration
 
+## UI inspiration
+
+https://www.figma.com/proto/yRQOf61flYNYNKw3PYMwGt/DOWNLOAD-Untitled-UI-%E2%80%93-PRO-version-(v2.7)?node-id=1630-319702&t=QG0NsScckx2ShMns-1
 
 
 ## Prerequisites
