@@ -231,8 +231,8 @@ function Feeds() {
         <div ref={observerTarget} className="h-16 mt-8 mb-4 flex items-center justify-center">
           {isLoadingMore ? (
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full border-2 border-gray-300 border-t-gray-600 animate-spin" />
-              <p className="text-gray-500">Loading more articles...</p>
+              <div className="w-6 h-6 rounded-full border-4 border-primary/10 border-t-primary animate-spin" />
+              <p className="text-primary">Loading more articles...</p>
             </div>
           ) : hasMore ? (
             <div className="h-4" />
