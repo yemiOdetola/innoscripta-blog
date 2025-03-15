@@ -50,7 +50,6 @@ export const searchGuardianArticles = async (
     }
 
     const url = `${GUARDIAN_BASE_URL}/search?${queryParams.toString()}`;
-    console.log('Guardian API request:', url); // For debugging
 
     const response = await fetch(url);
     const data = await response.json();

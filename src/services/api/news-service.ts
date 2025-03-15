@@ -57,8 +57,6 @@ export const searchAllSources = async (params: SearchParams): Promise<SearchResp
     }
   });
 
-  // If we have some articles but also some errors, return the articles
-  // and include the errors in a separate property
   if (allArticles.length > 0) {
     return {
       data: allArticles,
@@ -66,7 +64,6 @@ export const searchAllSources = async (params: SearchParams): Promise<SearchResp
     };
   }
 
-  // If we have no articles and all sources failed, return an error
   if (errors.length === sources.length) {
     return {
       data: [],

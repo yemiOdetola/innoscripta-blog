@@ -88,7 +88,6 @@ export const searchNewsArticles = async (
       throw new Error(data.error || `NewsAPI error: ${response.statusText}`);
     }
 
-    // Check if the response has the expected structure
     if (!data.articles || !Array.isArray(data.articles.results)) {
       throw new Error('Unexpected API response format');
     }

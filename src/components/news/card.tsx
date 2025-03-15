@@ -40,6 +40,7 @@ export function NewsCard({ image, title, author, date, description, tags, url }:
           {!imageLoaded && (
             <Skeleton className="absolute inset-0 w-full h-full" />
           )}
+          <div className="absolute inset-0 bg-black/20 z-10 group-hover:bg-black/30 transition-all duration-300 " />
           <img
             src={imageError ? "/images/placeholder.png" : image}
             alt={title}
@@ -53,7 +54,7 @@ export function NewsCard({ image, title, author, date, description, tags, url }:
             onError={handleImageError}
           />
 
-          <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/70 to-transparent backdrop-blur-[10px] group-hover:backdrop-blur-[16px] transition-all">
+          <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/70 to-transparent backdrop-blur-[10px] group-hover:backdrop-blur-[16px] transition-all z-20">
             <div className="flex justify-between items-center text-white">
               <div className="flex items-start flex-col gap-1">
                 <span className="block text-sm font-semibold">{author.split(' ').slice(0, 2).join(' ')}</span>
@@ -72,14 +73,14 @@ export function NewsCard({ image, title, author, date, description, tags, url }:
         </div>
 
         <div className="space-y-3 mt-4">
-          <h3 className="text-xl font-medium text-gray-900">
-            {title.split(' ').slice(0, 8).join(' ')}.
+          <h3 className="text-xl font-medium text-gray-900 line-clamp-2 h-[52px]">
+            {title}
           </h3>
-          <p className="text-sm text-gray-500 font-light leading-6">
-            {description.split(' ').slice(0, 15).join(' ')}...
+          <p className="text-sm text-gray-500 font-light leading-6 line-clamp-2 h-[48px]">
+            {description}
           </p>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" className="pl-0 text-primary hover:bg-transparent cursor-pointer">
+            <Button variant="ghost" size="sm" className="!pl-0 text-primary hover:bg-transparent cursor-pointer">
               <span className="text-sm text-gray-500">
                 Read More
               </span>

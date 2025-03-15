@@ -27,38 +27,33 @@ export const searchNYTimesArticles = async (
       throw new Error('NYTimes API key is not configured');
     }
 
-    // Build filter query
     let filterQueries: string[] = [];
     
-    // Add source filter
     filterQueries.push('source:("The New York Times")');
     
-    // Add category/news_desk filter if provided
     if (params.category) {
       filterQueries.push(`news_desk:("${params.category}")`);
     }
 
     const queryParams = new URLSearchParams({
       'api-key': NYT_API_KEY,
-      'q': params.keyword || '*', // Use * to match all if no keyword
-      'page': String((params.page || 1) - 1), // NYT uses 0-based pagination
+      'q': params.keyword || '*',
+      'page': String((params.page || 1) - 1),
       'sort': 'newest',
     });
 
-    // Add date filters if provided, otherwise use last 7 days
     const endDate = params.endDate || new Date().toISOString().split('T')[0];
     const startDate = params.startDate || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     
     queryParams.set('begin_date', startDate.replace(/-/g, ''));
     queryParams.set('end_date', endDate.replace(/-/g, ''));
 
-    // Add filter query if we have any filters
     if (filterQueries.length > 0) {
       queryParams.set('fq', filterQueries.join(' AND '));
     }
 
     const url = `${NYT_BASE_URL}/articlesearch.json?${queryParams.toString()}`;
-    console.log('NYT API request:', url); // For debugging
+    console.log('NYT API request:', url);
 
     const response = await fetch(url);
     const data = await response.json();
