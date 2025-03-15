@@ -1,54 +1,101 @@
-# React + TypeScript + Vite
+# Innoscripta News Aggregator
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+News aggregation platform  The Guardian, The New York Times, and NewsAPI. Built with vite, TypeScript, and Tailwind CSS.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- 🔍 Search articles across multiple news sources
+- 📱 Responsive design for all devices
+- 🗂️ Category-based filtering
+- 📅 Date range filtering
+- 📰 Source selection (Guardian, NYT, NewsAPI)
+- 💾 User preferences persistence (localstorage)
 
-## Expanding the ESLint configuration
+# UI inspiration
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+
+## Prerequisites
+
+Before you begin, ensure you have the following installed:
+- Node.js (v18 or higher)
+- pnpm (v8 or higher)
+- Docker (optional, for containerized development)
+
+## API Keys
+
+You'll need API keys from the following services:
+- [The Guardian API](https://open-platform.theguardian.com/access/)
+- [The New York Times API](https://developer.nytimes.com/get-started)
+- [News API](https://newsapi.org/register)
+
+## Setup
+
+1. Clone the repository:
+```bash
+git clone https://github.com/yemiOdetola/innoscripta-blog.git
+cd innoscripta-blog
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
+2. Install dependencies:
+```bash
+pnpm install
 ```
+
+3. Create environment file:
+```bash
+cp .env.example .env
+```
+
+4. Add your API keys to the `.env` file:
+```env
+VITE_GUARDIAN_API_KEY=your_guardian_api_key
+VITE_NYT_API_KEY=your_nyt_api_key
+VITE_NEWS_API_KEY=your_news_api_key
+```
+
+## Development
+
+Start the development server:
+```bash
+pnpm dev
+```
+
+The application will be available at `http://localhost:5173`
+
+## Docker Development
+
+1. Build and start the container:
+```bash
+docker compose up --build
+```
+
+2. Access the application at `http://localhost:5173`
+
+## Project Structure
+
+```
+src/
+├── components/     # Reusable UI components
+├── services/      # API and data services
+│   ├── api/       # News API integrations
+│   └── types/     # TypeScript interfaces
+├── hooks/         # Custom React hooks
+├── lib/           # Utility functions
+└── styles/        # Global styles and Tailwind config
+```
+
+## Available Scripts
+
+- `pnpm dev` - Start development server
+- `pnpm build` - Build for production
+- `pnpm preview` - Preview production build
+- `pnpm lint` - Run ESLint
+- `pnpm format` - Format code with Prettier
+
+
+## Acknowledgments
+
+- [The Guardian API](https://open-platform.theguardian.com/)
+- [The New York Times API](https://developer.nytimes.com/)
+- [News API](https://newsapi.org/)
