@@ -1,7 +1,8 @@
 import * as React from "react"
-import { Badge } from "../ui/badge"
 import { cn } from "@/lib/utils"
-import { ArrowRight } from "../icons"
+import { Skeleton } from "../ui/skeleton"
+import { Button } from "../ui/button";
+import { ArrowRight } from "../icons";
 
 interface NewsCardProps {
   image: string;
@@ -14,48 +15,76 @@ interface NewsCardProps {
 }
 
 export function NewsCard({ image, title, author, date, description, tags, url }: NewsCardProps) {
+  const [imageLoaded, setImageLoaded] = React.useState(false);
+  const [imageError, setImageError] = React.useState(false);
+
+  const handleImageLoad = () => {
+    setImageLoaded(true);
+  };
+
+  const handleImageError = () => {
+    setImageError(true);
+    setImageLoaded(true);
+  };
+
+  const formattedDate = new Date(date).toLocaleDateString('en-US', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  });
+
   return (
-    <article className="flex flex-col overflow-hidden rounded-lg border border-gray-200">
-      <div className="aspect-w-16 aspect-h-9">
-        <img
-          src={image}
-          alt={title}
-          className="h-48 w-full object-cover"
-        />
-      </div>
-      <div className="flex flex-1 flex-col justify-between p-6">
-        <div className="flex-1">
-          <div className="flex flex-wrap gap-2 mb-3">
-            {tags.map((tag, index) => (
-              <span
-                key={index}
-                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
-              >
-                {tag}
-              </span>
-            ))}
+    <article className="group">
+      <div className="block">
+        <div className="relative aspect-[4/3] w-full overflow-hidden bg-gray-100">
+          {!imageLoaded && (
+            <Skeleton className="absolute inset-0 w-full h-full" />
+          )}
+          <img
+            src={imageError ? "/images/placeholder.png" : image}
+            alt={title}
+            className={cn(
+              "w-full h-full object-cover transition-all duration-300 group-hover:scale-102",
+              !imageLoaded && "opacity-0",
+              imageLoaded && "opacity-100"
+            )}
+            loading="lazy"
+            onLoad={handleImageLoad}
+            onError={handleImageError}
+          />
+
+          <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/70 to-transparent backdrop-blur-[10px] group-hover:backdrop-blur-[16px] transition-all">
+            <div className="flex justify-between items-center text-white">
+              <div className="flex items-start flex-col gap-1">
+                <span className="block text-sm font-semibold">{author.split(' ').slice(0, 2).join(' ')}</span>
+                <span className="block text-sm">{formattedDate}</span>
+              </div>
+              {tags.slice(0, 1).map((tag, index) => (
+                <span
+                  key={index}
+                  className="block text-sm font-semibold"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
           </div>
-          <a href={url} target="_blank" rel="noopener noreferrer">
-            <h3 className="text-xl font-semibold text-gray-900 hover:text-blue-600">
-              {title}
-            </h3>
-          </a>
-          <p className="mt-3 text-base text-gray-500 line-clamp-3">
-            {description}
-          </p>
         </div>
-        <div className="mt-6 flex items-center">
-          <div className="flex-shrink-0">
-            <span className="sr-only">{author}</span>
-            <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-              {author.charAt(0)}
-            </div>
-          </div>
-          <div className="ml-3">
-            <p className="text-sm font-medium text-gray-900">{author}</p>
-            <div className="flex space-x-1 text-sm text-gray-500">
-              <time dateTime={date}>{date}</time>
-            </div>
+
+        <div className="space-y-3 mt-4">
+          <h3 className="text-xl font-medium text-gray-900">
+            {title.split(' ').slice(0, 8).join(' ')}.
+          </h3>
+          <p className="text-sm text-gray-500 font-light leading-6">
+            {description.split(' ').slice(0, 15).join(' ')}...
+          </p>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" className="pl-0 text-primary hover:bg-transparent cursor-pointer">
+              <span className="text-sm text-gray-500">
+                Read More
+              </span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-4 transition-all duration-300" />
+            </Button>
           </div>
         </div>
       </div>
