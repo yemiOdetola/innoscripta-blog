@@ -16,49 +16,35 @@ interface NewsCardProps {
 
 export function NewsCard({ image, title, author, date, description, tags, url }: NewsCardProps) {
   const [imageLoaded, setImageLoaded] = React.useState(false);
-  const [imageError, setImageError] = React.useState(false);
-
-  const handleImageLoad = () => {
-    setImageLoaded(true);
-  };
-
-  const handleImageError = () => {
-    setImageError(true);
-    setImageLoaded(true);
-  };
 
   const formattedDate = new Date(date).toLocaleDateString('en-US', {
-    day: 'numeric',
+    year: 'numeric',
     month: 'short',
-    year: 'numeric'
+    day: 'numeric'
   });
 
   return (
-    <article className="group">
-      <div className="block">
-        <div className="relative aspect-[4/3] w-full overflow-hidden bg-gray-100">
+    <article className="group relative bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300">
+      <a href={url} target="_blank" rel="noopener noreferrer" className="block">
+        <div className="relative aspect-[16/9] overflow-hidden">
           {!imageLoaded && (
-            <Skeleton className="absolute inset-0 w-full h-full" />
+            <div className="absolute inset-0 bg-gray-100 animate-pulse" />
           )}
-          <div className="absolute inset-0 bg-black/20 z-10 group-hover:bg-black/30 transition-all duration-300 " />
           <img
-            src={imageError ? "/images/placeholder.png" : image}
+            src={image}
             alt={title}
+            onLoad={() => setImageLoaded(true)}
             className={cn(
-              "w-full h-full object-cover transition-all duration-300 group-hover:scale-102",
-              !imageLoaded && "opacity-0",
-              imageLoaded && "opacity-100"
+              "w-full h-full object-cover transition-opacity duration-300",
+              imageLoaded ? "opacity-100" : "opacity-0"
             )}
-            loading="lazy"
-            onLoad={handleImageLoad}
-            onError={handleImageError}
           />
 
           <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/70 to-transparent backdrop-blur-[10px] group-hover:backdrop-blur-[16px] transition-all z-20">
             <div className="flex justify-between items-center text-white">
               <div className="flex items-start flex-col gap-1">
-                <span className="block text-sm font-semibold">{author.split(' ').slice(0, 2).join(' ')}</span>
-                <span className="block text-sm">{formattedDate}</span>
+                <span className="block text-[13px] font-semibold">{author.split(' ').slice(0, 2).join(' ')}</span>
+                <span className="block text-[13px]">{formattedDate}</span>
               </div>
               {tags.slice(0, 1).map((tag, index) => (
                 <span
@@ -73,10 +59,10 @@ export function NewsCard({ image, title, author, date, description, tags, url }:
         </div>
 
         <div className="space-y-3 mt-4">
-          <h3 className="text-xl font-medium text-gray-900 line-clamp-2 h-[52px]">
+          <h3 className="text-xl font-medium text-gray-900 line-clamp-1 h-[32px]">
             {title}
           </h3>
-          <p className="text-sm text-gray-500 font-light leading-6 line-clamp-2 h-[48px]">
+          <p className="text-sm text-gray-500 leading-6 line-clamp-2 h-[48px]">
             {description}
           </p>
           <div className="flex items-center gap-2">
@@ -88,7 +74,7 @@ export function NewsCard({ image, title, author, date, description, tags, url }:
             </Button>
           </div>
         </div>
-      </div>
+      </a>
     </article>
   );
 }

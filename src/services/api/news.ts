@@ -1,5 +1,5 @@
 import { Article } from '../types/article';
-import { ApiResponse, NewsApiParams } from './types';
+import { ApiResponse, NewsApiParams, CATEGORY_MAPPINGS } from './types';
 
 const NEWS_API_KEY = import.meta.env.VITE_NEWS_API_KEY;
 const NEWS_API_BASE_URL = 'https://eventregistry.org/api/v1/article/getArticles';
@@ -31,8 +31,6 @@ const mapNewsApiArticle = (article: any): Article => ({
   source: article.source?.title || 'Unknown Source',
   category: article.categories?.[0]?.label || '',
   publishedAt: article.dateTime,
-  dateStart: article.dateTime,
-  dateEnd: article.dateTime,
   url: article.url,
   imageUrl: article.image,
 });
@@ -64,14 +62,27 @@ export const searchNewsArticles = async (
       apiKey: NEWS_API_KEY
     };
 
-    if (params.startDate || params.endDate) {
-      requestBody.dateStart = params.startDate;
-      requestBody.dateEnd = params.endDate;
+    // Add date filters if provided
+    if (params.startDate) {
+      requestBody.dateStart = new Date(params.startDate).toISOString().split('T')[0];
+    }
+    if (params.endDate) {
+      requestBody.dateEnd = new Date(params.endDate).toISOString().split('T')[0];
     }
 
-    if (params.category) {
-      requestBody.categoryUri = `dmoz/${params.category}`;
+    // Add category if provided
+    if (params.category && CATEGORY_MAPPINGS[params.category]) {
+      requestBody.categoryUri = CATEGORY_MAPPINGS[params.category].newsApi;
     }
+
+    console.log('News API request:', {
+      dates: {
+        start: requestBody.dateStart,
+        end: requestBody.dateEnd
+      },
+      category: requestBody.categoryUri,
+      keyword: requestBody.keyword
+    });
 
     const response = await fetch(NEWS_API_BASE_URL, {
       method: 'POST',

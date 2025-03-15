@@ -1,13 +1,12 @@
-import Container from "@/components/container"
 import Feeds from "@/components/news/feeds"
+import Banner from "@/components/banner"
 
 function App() {
 
   return (
     <>
-      <Container>
-        <Feeds />
-      </Container>
+      <Banner />
+      <Feeds />
     </>
   )
 }

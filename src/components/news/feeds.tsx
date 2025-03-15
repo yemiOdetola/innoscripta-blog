@@ -4,8 +4,17 @@ import { NewsCard } from "@/components/news/card"
 import { searchAllSources } from "@/services/api/news-service";
 import { Article } from "@/services/types/article";
 import { SearchBar } from "./search";
+import { Preferences } from "./preferences";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { DateRange } from "react-day-picker";
+
+export interface FiltersState {
+  dateRange?: DateRange;
+  category?: string;
+  source?: string;
+}
+
 
 function Feeds() {
   const [articles, setArticles] = useState<Article[]>([]);
@@ -15,8 +24,29 @@ function Feeds() {
   const [searchParams, setSearchParams] = useState({
     keyword: '',
     page: 1,
-    pageSize: 12
+    pageSize: 12,
+    dateRange: undefined as { from?: Date; to?: Date } | undefined,
+    category: undefined as string | undefined,
+    source: undefined as string | undefined,
   });
+
+  const [preferences, setPreferences] = useState({
+    sources: [] as string[],
+    categories: [] as string[],
+    dateRange: undefined as { from?: Date; to?: Date } | undefined,
+  });
+
+  const [sources] = useState(['Guardian', 'New York Times', 'News API']);
+  const [categories] = useState([
+    'World',
+    'Politics',
+    'Business',
+    'Technology',
+    'Science',
+    'Health',
+    'Sports',
+    'Entertainment'
+  ]);
 
   const observerTarget = useRef<HTMLDivElement>(null);
 
@@ -94,10 +124,18 @@ function Feeds() {
     }
 
     try {
-      const response = await searchAllSources(searchParams);
+      const dateRange = searchParams.dateRange || preferences.dateRange;
+      const apiParams = {
+        ...searchParams,
+        from: dateRange?.from ? new Date(dateRange.from.setHours(0, 0, 0, 0)).toISOString() : undefined,
+        to: dateRange?.to ? new Date(dateRange.to.setHours(23, 59, 59, 999)).toISOString() : undefined,
+        category: searchParams.category || (preferences.categories.length > 0 ? preferences.categories[0] : undefined),
+        source: searchParams.source || (preferences.sources.length > 0 ? preferences.sources[0] : undefined),
+      };
+
+      const response = await searchAllSources(apiParams);
 
       if (response.error) {
-        console.log('Error occured', response.error);
         toast.error(response.error);
       }
 
@@ -121,16 +159,44 @@ function Feeds() {
   useEffect(() => {
     setHasMore(true);
     fetchArticles();
-  }, [searchParams.keyword]);
+  }, [
+    searchParams.keyword,
+    searchParams.category,
+    searchParams.source,
+    searchParams.dateRange,
+    preferences.sources,
+    preferences.categories
+  ]);
 
-  const handleSearch = (keyword: string) => {
+  const handleSearch = (keyword: string, filters?: FiltersState) => {
     setSearchParams(prev => ({
       ...prev,
       keyword,
-      page: 1
+      page: 1,
+      dateRange: filters?.dateRange,
+      category: filters?.category,
+      source: filters?.source
     }));
   };
 
+  const handlePreferencesChange = (newPreferences: {
+    sources: string[];
+    categories: string[];
+    dateRange?: { from?: Date; to?: Date };
+  }) => {
+    setPreferences({
+      sources: newPreferences.sources,
+      categories: newPreferences.categories,
+      dateRange: newPreferences.dateRange || undefined
+    });
+
+    setSearchParams(prev => ({
+      ...prev,
+      category: undefined,
+      source: undefined,
+      dateRange: newPreferences.dateRange
+    }));
+  };
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -156,7 +222,17 @@ function Feeds() {
   if (isLoading) {
     return (
       <Container>
-        <SearchBar onSearch={handleSearch} isLoading={isLoading} />
+        <div className="flex items-center justify-between mb-6">
+          <SearchBar
+            onSearch={handleSearch}
+            isLoading={isLoading}
+          />
+          <Preferences
+            sources={sources}
+            categories={categories}
+            onPreferencesChange={handlePreferencesChange}
+          />
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {Array.from({ length: 8 }).map((_, index) => (
             <div key={index} className="space-y-3">
@@ -180,7 +256,17 @@ function Feeds() {
   if (articles.length === 0) {
     return (
       <Container>
-        <SearchBar onSearch={handleSearch} isLoading={isLoading} />
+        <div className="flex items-center justify-between mb-6">
+          <SearchBar
+            onSearch={handleSearch}
+            isLoading={isLoading}
+          />
+          <Preferences
+            sources={sources}
+            categories={categories}
+            onPreferencesChange={handlePreferencesChange}
+          />
+        </div>
         <div className="flex items-center justify-center min-h-[400px]">
           <p className="text-gray-500">No articles found</p>
         </div>
@@ -190,7 +276,17 @@ function Feeds() {
 
   return (
     <Container>
-      <SearchBar onSearch={handleSearch} isLoading={isLoading} />
+      <div className="flex items-center justify-between mb-6">
+        <SearchBar
+          onSearch={handleSearch}
+          isLoading={isLoading}
+        />
+        <Preferences
+          sources={sources}
+          categories={categories}
+          onPreferencesChange={handlePreferencesChange}
+        />
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {articles.map((article, index) => (
           <NewsCard
@@ -200,7 +296,6 @@ function Feeds() {
             author={article.author}
             date={new Date(article.publishedAt).toISOString().split('T')[0]}
             description={article.description}
-            // tags={[article.category]}
             tags={extractKeywords(article.title, article.description, article.category)}
             url={article.url}
           />

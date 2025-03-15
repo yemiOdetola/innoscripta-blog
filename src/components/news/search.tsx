@@ -14,8 +14,8 @@ export function SearchBar({ onSearch, isLoading }: SearchBarProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="mb-6">
-      <div className="flex gap-2">
+    <div className="space-y-4 mb-6">
+      <form onSubmit={handleSubmit} className="flex gap-2">
         <input
           type="text"
           value={searchTerm}
@@ -31,7 +31,8 @@ export function SearchBar({ onSearch, isLoading }: SearchBarProps) {
         >
           Search
         </button>
-      </div>
-    </form>
+      </form>
+
+    </div>
   );
 } 
